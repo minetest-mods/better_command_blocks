@@ -9,3 +9,4 @@ To use the command blocks, you must have the `better_command_blocks` priv.
 
 ## Known issues:
 1. If a command block is about to run a command after a delay, and it is dug before the delay is over, it will still run.
+2. Internally, command blocks *technically* face backwards because I accidentally made it that way. This will not be fixed, to keep backwards compatibility.

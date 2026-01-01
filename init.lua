@@ -3,23 +3,21 @@ local S = core.get_translator(core.get_current_modname())
 better_command_blocks = {}
 
 local command_blocks = {
-    {"impulse", S("Command Block")},
-    {"repeating", S("Repeating @1", S("Command Block"))},
-    {"chain", S("Chain @1", S("Command Block"))},
+    { "impulse",   S("Command Block") },
+    { "repeating", S("Repeating @1", S("Command Block")) },
+    { "chain",     S("Chain @1", S("Command Block")) },
 }
 
-local anim = {type = "vertical_frames"}
+local anim = { type = "vertical_frames" }
 
 local mesecons_rules = {
-    {x = 0, y = 0, z = 1},
-    {x = 0, y = 0, z = -1},
-    {x = 0, y = 1, z = 0},
-    {x = 0, y = -1, z = 0},
-    {x = 1, y = 0, z = 0},
-    {x = -1, y = 0, z = 0},
+    { x = 0,  y = 0,  z = 1 },
+    { x = 0,  y = 0,  z = -1 },
+    { x = 0,  y = 1,  z = 0 },
+    { x = 0,  y = -1, z = 0 },
+    { x = 1,  y = 0,  z = 0 },
+    { x = -1, y = 0,  z = 0 },
 }
-
-local already_run = {}
 
 ---Gets a metadata string or a fallback falue
 ---@param meta core.MetaDataRef
@@ -32,44 +30,75 @@ local function get_string_or(meta, key, fallback)
 end
 
 local types = {
-    {"Impulse", false},
-    {"Repeating", false},
-    {"Chain", false},
-    {"Impulse", true}, -- true = conditional
-    {"Repeating", true},
-    {"Chain", true},
+    { "Impulse",   false },
+    { "Repeating", false },
+    { "Chain",     false },
+    { "Impulse",   true }, -- true = conditional
+    { "Repeating", true },
+    { "Chain",     true },
 }
 
 ---Opens command block formspec
 ---@param pos vector.Vector
 ---@param node core.Node
 ---@param player core.Player
-local function on_rightclick(pos, node, player)
+local function on_rightclick(pos, node, player, held_item)
     if not core.check_player_privs(player, "better_command_blocks") then return end
     local meta = core.get_meta(pos)
-    local command = meta:get_string("_command")
     local group = core.get_item_group(node.name, "command_block")
-    if not types[group] then return end
-    local power = meta:get_string("_power") == "false" and "Always Active" or "Needs Power"
-    local message = meta:get_string("_message")
+    if not types[group] then return held_item end
+
+    local command = meta:get_string("_command")
+    local power = meta:get_string("_power")
     local delay = get_string_or(meta, "_delay", (group == 2 or group == 5) and "1" or "0")
-    local formspec = table.concat({ 
+    local note = meta:get_string("infotext")
+    local message = meta:get_string("_message")
+
+    if player:get_player_control().aux1 then
+        local itemstack = ItemStack(node.name)
+        local item_meta = itemstack:get_meta()
+        item_meta:set_string("_command", command)
+        item_meta:set_string("_power", power)
+        item_meta:set_string("_delay", delay)
+        item_meta:set_string("infotext", note)
+        item_meta:set_string("_message", message)
+        item_meta:set_string("_stored_command", "true")
+        local command_string = command
+        if #command_string > 35 then
+            command_string = command_string:sub(1, 32) .. "..."
+        end
+        command_string = minetest.colorize("#555555", "[" .. command_string .. "]")
+        item_meta:set_string("description", itemstack:get_description() .. "\n" .. command_string)
+        player:get_inventory():add_item("main", itemstack)
+        return player:get_wielded_item()
+    end
+
+    local formspec = table.concat({
         "formspec_version[4]",
         "size[10,6]",
-        "label[0.5,0.5;",ItemStack(node.name):get_short_description(),"]",
-        "field[6.5,0.5;2,1;delay;Delay (seconds);",delay,"]",
-        "field_close_on_enter[delay;false]",
-        "button[8.5,0.5;1,1;set_delay;Set]",
-        "field[0.5,2;8,1;command;Command;",core.formspec_escape(command),"]",
+
+        "label[0.5,0.5;", ItemStack(node.name):get_short_description(), "]",
+
+        "field[0.5,3;8,0.7;command;Command;", core.formspec_escape(command), "]",
         "field_close_on_enter[command;false]",
-        "button[8.5,2;1,1;set_command;Set]",
-        "button[0.5,3.5;3,1;type;",types[group][1],"]",
-        "button[3.5,3.5;3,1;conditional;",types[group][2] and "Conditional" or "Unconditional","]",
-        "button[6.5,3.5;3,1;power;",power,"]",
-        "textarea[0.5,5;9,1;;Previous output;",core.formspec_escape(message),"]",
+        "button[8.5,3;1,0.7;set_command;Set]",
+
+        "field[0.5,1.5;4.5,0.7;note;Hover Note (seconds);", note, "]",
+        "button[5,1.5;1,0.7;set_note;Set]",
+        "field_close_on_enter[note;false]",
+
+        "field[6.5,1.5;2,0.7;delay;Delay (seconds);", delay, "]",
+        "button[8.5,1.5;1,0.7;set_delay;Set]",
+        "field_close_on_enter[delay;false]",
+
+        "button[0.5,4;3,0.7;type;", types[group][1], "]",
+        "button[3.5,4;3,0.7;conditional;", types[group][2] and "Conditional" or "Unconditional", "]",
+        "button[6.5,4;3,0.7;power;", power == "false" and "Always Active" or "Needs Power", "]",
+
+        "textarea[0.5,5.3;9,0.7;;Previous output;", core.formspec_escape(message), "]",
     })
     local player_name = player:get_player_name()
-    core.show_formspec(player_name, "better_command_blocks:"..core.pos_to_string(pos), formspec)
+    core.show_formspec(player_name, "better_command_blocks:" .. core.pos_to_string(pos), formspec)
 end
 
 local command_block_itemstrings = {}
@@ -86,6 +115,9 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     local show_formspec
     if fields.command then
         meta:set_string("_command", fields.command)
+    end
+    if fields.note then
+        meta:set_string("infotext", fields.note)
     end
     local delay = tonumber(fields.delay)
     if delay and delay >= 0 then
@@ -148,10 +180,7 @@ local function check_for_chain(pos)
     if next_group == 0 then return end
     if dir ~= next_dir then return end
     if next_group == 3 or next_group == 6 then -- chain
-        local pos_string = core.pos_to_string(next)
-        if not already_run[pos_string] then
-            better_command_blocks.run(next)
-        end
+        better_command_blocks.run(next)
     end
 end
 
@@ -159,7 +188,7 @@ local function run_command(pos, meta, cmd_def, name, param, context)
     local success, message, count
     if cmd_def.real_func then -- Better Commands
         success, message, count = cmd_def.real_func(name, param, context)
-    else -- Normal command
+    else                      -- Normal command
         success, message = cmd_def.func(name, param)
     end
     --[[if success == true then
@@ -172,7 +201,7 @@ local function run_command(pos, meta, cmd_def, name, param, context)
     meta:set_int("_count", count or -1)
     if success == 1 and message and message ~= "" then
         if core.settings:get_bool("better_command_blocks.command_block_output", true)
-        and core.settings:get_bool("better_commands.send_command_feedback", true) then
+            and core.settings:get_bool("better_commands.send_command_feedback", true) then
             core.chat_send_all(core.colorize("#aaaaaa", S(
                 "[@1: @2]",
                 S("Command Block"),
@@ -203,13 +232,6 @@ function better_command_blocks.run(pos)
             end
             return
         end
-    end
-
-    if group == 3 or group == 6 then -- chain
-        local pos_string = core.pos_to_string(pos)
-        if already_run[pos_string] then return end
-        already_run[pos_string] = true
-        core.after(0, function() already_run[pos_string] = nil end)
     end
 
     local command = meta:get_string("_command")
@@ -276,14 +298,14 @@ for i, command_block in pairs(command_blocks) do
     local name, desc = unpack(command_block)
     local def = {
         description = desc,
-        groups = {oddly_breakable_by_hand = 3, cracky = 3, command_block = i, creative_breakable=1, mesecon_effector_off=1, mesecon_effector_on=1},
+        groups = { oddly_breakable_by_hand = 3, cracky = 3, command_block = i, creative_breakable = 1, mesecon_effector_off = 1, mesecon_effector_on = 1 },
         tiles = {
-            {name = "better_command_blocks_"..name.."_top.png", animation = anim},
-            {name = "better_command_blocks_"..name.."_bottom.png", animation = anim},
-            {name = "better_command_blocks_"..name.."_right.png", animation = anim},
-            {name = "better_command_blocks_"..name.."_left.png", animation = anim},
-            {name = "better_command_blocks_"..name.."_front.png", animation = anim},
-            {name = "better_command_blocks_"..name.."_back.png", animation = anim},
+            { name = "better_command_blocks_" .. name .. "_top.png", animation = anim },
+            { name = "better_command_blocks_" .. name .. "_bottom.png", animation = anim },
+            { name = "better_command_blocks_" .. name .. "_right.png", animation = anim },
+            { name = "better_command_blocks_" .. name .. "_left.png", animation = anim },
+            { name = "better_command_blocks_" .. name .. "_front.png", animation = anim },
+            { name = "better_command_blocks_" .. name .. "_back.png", animation = anim },
         },
         paramtype2 = "facedir",
         on_rightclick = on_rightclick,
@@ -307,32 +329,50 @@ for i, command_block in pairs(command_blocks) do
             end
         end,
         after_place_node = function(pos, placer, itemstack, pointed_thing)
-            core.get_meta(pos):set_string("_player", placer:get_player_name())
+            local node = minetest.get_node(pos)
+            node.param2 = core.dir_to_facedir(placer:get_look_dir() * -1, true)
+            core.swap_node(pos, node)
+            local meta = core.get_meta(pos)
+            meta:set_string("_player", placer:get_player_name())
+            local item_meta = itemstack:get_meta()
+            if item_meta:get_string("_stored_command") == "true" then
+                local power = item_meta:get_string("_power")
+                meta:set_string("_command", item_meta:get_string("_command"))
+                meta:set_string("_delay", item_meta:get_string("_delay"))
+                meta:set_string("infotext", item_meta:get_string("infotext"))
+                meta:set_string("_power", power)
+                meta:set_string("_message", item_meta:get_string("_message"))
+                local group = core.get_item_group(itemstack:get_name(), "command_block")
+                if power == "false" and (group ~= 3 and group ~= 6) then
+                    better_command_blocks.run(pos)
+                end
+            end
         end
     }
-    local itemstring = "better_command_blocks:"..name.."_command_block"
+    local itemstring = "better_command_blocks:" .. name .. "_command_block"
     core.register_node(itemstring, def)
     command_block_itemstrings[i] = itemstring
 
     local conditional_def = table.copy(def)
     conditional_def.groups.not_in_creative_inventory = 1
-    conditional_def.groups.command_block = i+3
+    conditional_def.groups.command_block = i + 3
     conditional_def.description = S("Conditional @1", desc)
     conditional_def.tiles = {
-        {name = "better_command_blocks_"..name.."_conditional_top.png", animation = anim},
-        {name = "better_command_blocks_"..name.."_conditional_bottom.png", animation = anim},
-        {name = "better_command_blocks_"..name.."_conditional_right.png", animation = anim},
-        {name = "better_command_blocks_"..name.."_conditional_left.png", animation = anim},
-        {name = "better_command_blocks_"..name.."_front.png", animation = anim},
-        {name = "better_command_blocks_"..name.."_back.png", animation = anim},
+        { name = "better_command_blocks_" .. name .. "_conditional_top.png", animation = anim },
+        { name = "better_command_blocks_" .. name .. "_conditional_bottom.png", animation = anim },
+        { name = "better_command_blocks_" .. name .. "_conditional_right.png", animation = anim },
+        { name = "better_command_blocks_" .. name .. "_conditional_left.png", animation = anim },
+        { name = "better_command_blocks_" .. name .. "_front.png",          animation = anim },
+        { name = "better_command_blocks_" .. name .. "_back.png",           animation = anim },
     }
-    itemstring = "better_command_blocks:"..name.."_command_block_conditional"
+    itemstring = "better_command_blocks:" .. name .. "_command_block_conditional"
     core.register_node(itemstring, conditional_def)
-    command_block_itemstrings[i+3] = itemstring
+    command_block_itemstrings[i + 3] = itemstring
 end
 
 core.register_alias("better_command_blocks:command_block", "better_command_blocks:impulse_command_block")
-core.register_alias("better_command_blocks:command_block_conditional", "better_command_blocks:impulse_command_block_conditional")
+core.register_alias("better_command_blocks:command_block_conditional",
+    "better_command_blocks:impulse_command_block_conditional")
 
 ---@diagnostic disable-next-line: missing-fields
 core.register_privilege("better_command_blocks", {

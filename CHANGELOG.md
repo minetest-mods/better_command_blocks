@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0 (December 31, 2025)
+* Command blocks can be copied with aux1+right-click
+* Added "Hover Note" option, like the non-coffee flavor of ACOVG
+* Command blocks are placed facing the placer (as in ACOVG), and are no longer impossible to place vertically
+* Improved formspec
+* Fixed a potential issue where the player's wielded item could get deleted when interacting with command blocks
+* Removed unnecessary checks for chain command blocks running multiple times per tick (unnecessary since chain direction got stricter in v1.1)
+
 ## v1.3
 * Fixed a couple random things (commands can now begin with slashes again)
 
