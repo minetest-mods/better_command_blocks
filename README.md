@@ -3,14 +3,12 @@ Adds command blocks similar to those of a certain other voxel game (hereafter re
 
 To use the command blocks, you must have the `better_command_blocks` privilege.
 
-Normal commands (not Better Commands) can *only* be run if the placer is online, and are executed as the placer. Better Commands are executed as the command block itself 
+Normal commands (not Better Commands) can *only* be run if the placer is online, and are executed as the placer. Better Commands are executed as the command block itself (same position and rotation).
 
 ## License:
 * Code: Licensed under MIT
-* Textures: Created by me, inspired by ACOVG's (and various ACOVG texture packs that I considered using instead), and licensed under CC-BY-SA-4.0
+* Textures: Created by me, inspired by ACOVG's textures (and various ACOVG texture packs that I considered using instead), and licensed under CC-BY-SA-4.0
 
 ## Known issues:
-1. If a command block is about to run a command after a delay, and it is dug before the delay is over, it will still run. This also applies to bulk command blocks.
-2. While commands can *mostly* be used with or without slashes, they are REQUIRED if the command has multiple slashes (such as `//replace` from WorldEdit).
-4. Internally, command blocks *technically* face backwards because I accidentally made it that way. This will not be fixed, because it really has no effect besides potentially slightly confusing people who look at the code.
-5. I skipped 3.
+1. While slashes are usually optional, they are REQUIRED if the command has multiple slashes (such as `//replace` from WorldEdit).
+2. Internally, command blocks *technically* face backwards because I accidentally made it that way. This will not be fixed, because it really has no effect besides potentially slightly confusing people who look at the code.

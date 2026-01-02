@@ -13,7 +13,8 @@
   * Fixed a potential issue where the player's wielded item could get deleted when interacting with command blocks
   * Fixed a bug where command blocks couldn't run commands without parameters
   * Normal commands (not Better Commands) can now *only* be run when the command block's placer is online. Some commands (VL `clearmobs` for example) expect to have a valid player object and will crash otherwise.
-* Probably added bugs since I basically rewrote half the mod. Wouldn't be surprised if there was a bugfix release in the next couple days.
+  * Command blocks *should* no longer run after being dug during the delay
+* Probably added bugs since I basically rewrote half the mod. I wouldn't be surprised if there was a bugfix release in the next few days.
 
 ## v1.3
 * Fixed a couple random things (commands can now begin with slashes again)
